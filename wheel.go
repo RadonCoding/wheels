@@ -28,7 +28,7 @@ var (
 
 func drawWheel(dc *gg.Context, options []string, cx float64, cy float64, radius float64, rotation float64) {
 	outerRadius := radius
-	innerRadius := radius * 0.95 // Thinner border
+	innerRadius := radius * 0.95
 
 	// Draw outline
 	dc.SetColor(colorOutline)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"image"
 	"image/color"
 	"math"
 )
@@ -22,38 +21,6 @@ func interpolate(c1, c2 color.RGBA, factor float64) color.RGBA {
 	b := uint8(float64(c1.B)*(1-factor) + float64(c2.B)*factor)
 	a := uint8(float64(c1.A)*(1-factor) + float64(c2.A)*factor)
 	return color.RGBA{r, g, b, a}
-}
-
-// Creates a palette by sampling pixels from an image
-func createPalette(img image.Image, limit int) []color.Color {
-	samples := make(map[color.RGBA]struct{})
-	bounds := img.Bounds()
-
-	step := 8
-
-outer:
-	for y := bounds.Min.Y; y < bounds.Max.Y; y += step {
-		for x := bounds.Min.X; x < bounds.Max.X; x += step {
-			r, g, b, a := img.At(x, y).RGBA()
-			c := color.RGBA{
-				R: uint8(r >> 8),
-				G: uint8(g >> 8),
-				B: uint8(b >> 8),
-				A: uint8(a >> 8),
-			}
-			samples[c] = struct{}{}
-
-			if len(samples) >= limit {
-				break outer
-			}
-		}
-	}
-
-	palette := make([]color.Color, 0, len(samples))
-	for c := range samples {
-		palette = append(palette, c)
-	}
-	return palette
 }
 
 // Uses the same logic as the wheel drawing to calculate how much to rotate to reach a specific option
