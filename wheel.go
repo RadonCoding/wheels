@@ -88,44 +88,35 @@ func drawWheel(dc *gg.Context, options []string, cx float64, cy float64, radius 
 
 const (
 	BLINKING_START = 0.9
-	BLINKING_END   = 1.8
-	FADE_OUT_TIME  = 0.2
-	FADE_OUT_END   = BLINKING_END + FADE_OUT_TIME
+	BLINKING_END   = 1.0
 )
 
-func getLightColor(angle float64, animation, rotation float64, inactive, spinning, stopped color.RGBA) color.RGBA {
+func getLightColor(angle, animation, rotation float64, inactive, spinning, stopped color.RGBA) color.RGBA {
 	if animation < BLINKING_START {
 		relative := math.Mod(angle-rotation, 2*math.Pi)
 		progress := relative / (2 * math.Pi)
 		brightness := (math.Sin(progress*2*math.Pi*3) + 1) / 2
 		return interpolate(inactive, spinning, brightness)
 	}
-
-	if animation >= BLINKING_START && animation <= FADE_OUT_END {
-		if animation <= BLINKING_END {
-			normalized := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
-			blink := (math.Sin(normalized*20.0*math.Pi) + 1) / 2
-			return interpolate(stopped, inactive, blink)
-		}
-		fade := (animation - BLINKING_END) / FADE_OUT_TIME
-		return interpolate(stopped, inactive, fade)
+	if animation >= BLINKING_START && animation <= BLINKING_END {
+		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
+		blink := (math.Sin(phase*2*math.Pi) + 1) / 2
+		return interpolate(stopped, inactive, blink)
 	}
-
-	return inactive
+	return stopped
 }
 
 func getArrowColor(animation float64, inactive, stopped color.RGBA) color.RGBA {
-	if animation >= BLINKING_START && animation <= FADE_OUT_END {
-		if animation <= BLINKING_END {
-			normalized := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
-			blink := (math.Sin(normalized*20.0*math.Pi) + 1) / 2
-			return interpolate(stopped, inactive, blink)
-		}
-		fade := (animation - BLINKING_END) / FADE_OUT_TIME
-		return interpolate(stopped, inactive, fade)
+	if animation < BLINKING_START {
+		return inactive
 	}
 
-	return inactive
+	if animation >= BLINKING_START && animation <= BLINKING_END {
+		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
+		blink := (math.Sin(phase*2*math.Pi) + 1) / 2
+		return interpolate(stopped, inactive, blink)
+	}
+	return stopped
 }
 
 func drawLights(dc *gg.Context, options []string, cx float64, cy float64, radius float64, animation float64, rotation float64) {

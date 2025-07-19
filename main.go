@@ -76,7 +76,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid 'linger' value", http.StatusBadRequest)
 			return
 		}
-		linger = clamp(linger, 1, 30)
+		linger = clamp(linger, 0, 30)
 	}
 
 	start := time.Now()
