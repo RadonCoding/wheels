@@ -28,7 +28,7 @@ var cacheTTL time.Duration
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Failed to load environment variables")
+		log.Println("Failed to load environment variables.")
 	}
 
 	maxCost := DEFAULT_CACHE_MAX_BYTES
@@ -167,7 +167,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Failed to load environment variables")
+		log.Println("Failed to load environment variables.")
 	}
 
 	port := os.Getenv("PORT")
