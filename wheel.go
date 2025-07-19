@@ -123,9 +123,9 @@ func drawLights(dc *gg.Context, options []string, cx float64, cy float64, radius
 	outerRadius := radius
 	innerRadius := radius * 0.9
 
-	inactive := color.RGBA{R: 100, G: 100, B: 100, A: 255}
-	spinning := color.RGBA{R: 255, G: 255, B: 0, A: 255}
-	stopped := color.RGBA{R: 255, G: 0, B: 0, A: 255}
+	inactive := color.RGBA{100, 100, 100, 255}
+	spinning := color.RGBA{255, 255, 0, 255}
+	stopped := color.RGBA{255, 0, 0, 255}
 
 	// Draw lights
 	lightCount := len(options) * 3
@@ -149,8 +149,8 @@ func drawLights(dc *gg.Context, options []string, cx float64, cy float64, radius
 func drawArrow(dc *gg.Context, cx float64, cy float64, radius float64, animation float64) {
 	innerRadius := radius * 0.9
 
-	inactive := color.RGBA{R: 100, G: 100, B: 100, A: 255}
-	stopped := color.RGBA{R: 255, G: 0, B: 0, A: 255}
+	inactive := color.RGBA{100, 100, 100, 255}
+	stopped := color.RGBA{255, 0, 0, 255}
 
 	const ARROW_SIZE = 32.0
 
@@ -175,7 +175,6 @@ func drawArrow(dc *gg.Context, cx float64, cy float64, radius float64, animation
 	dc.Stroke()
 }
 
-// First draws the wheel, then the arrow and rotates the drawn wheel image while layering the lights and arrow on top for each frame
 func generateWheelGIF(w io.Writer, options []string, target int, fps int, spins int, duration int, linger int) error {
 	const RADIUS = 200
 
