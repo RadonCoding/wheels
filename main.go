@@ -71,7 +71,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	elapsed := time.Since(start)
 
-	log.Printf("Generated wheel GIF in %v (duration=%d, frames=%d)", elapsed, duration, fps)
+	log.Printf("Generated wheel GIF in %v (duration=%d, fps=%d)", elapsed, duration, fps)
 
 	w.Header().Set("Content-Type", "image/gif")
 	w.Write(buf.Bytes())
