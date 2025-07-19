@@ -49,40 +49,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		fps = clamp(fps, 1, 24)
 	}
 
-	spins := 3
-	if s := query.Get("spins"); s != "" {
-		spins, err = strconv.Atoi(s)
-		if err != nil {
-			http.Error(w, "Invalid 'spins' value", http.StatusBadRequest)
-			return
-		}
-		spins = clamp(spins, 1, 9)
-	}
-
-	duration := 3
+	duration := 10
 	if d := query.Get("duration"); d != "" {
 		duration, err = strconv.Atoi(d)
 		if err != nil {
 			http.Error(w, "Invalid 'duration' value", http.StatusBadRequest)
 			return
 		}
-		duration = clamp(duration, 1, 9)
-	}
-
-	linger := 5
-	if d := query.Get("linger"); d != "" {
-		linger, err = strconv.Atoi(d)
-		if err != nil {
-			http.Error(w, "Invalid 'linger' value", http.StatusBadRequest)
-			return
-		}
-		linger = clamp(linger, 0, 30)
+		duration = clamp(duration, 1, 30)
 	}
 
 	start := time.Now()
 
 	var buf bytes.Buffer
-	err = generateWheelGIF(&buf, options, target, fps, spins, duration, linger)
+	err = generateWheelGIF(&buf, options, target, fps, duration)
 	if err != nil {
 		log.Printf("Error generating wheel GIF: %v", err)
 		http.Error(w, "Failed to generate wheel", http.StatusInternalServerError)
@@ -91,7 +71,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	elapsed := time.Since(start)
 
-	log.Printf("Generated wheel GIF in %v (duration=%d, frames=%d, spins=%d)", elapsed, duration, fps, spins)
+	log.Printf("Generated wheel GIF in %v (duration=%d, frames=%d)", elapsed, duration, fps)
 
 	w.Header().Set("Content-Type", "image/gif")
 	w.Write(buf.Bytes())

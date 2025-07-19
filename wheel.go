@@ -199,20 +199,21 @@ func drawArrow(dc *gg.Context, cx, cy, radius, animation float64) {
 	dc.Stroke()
 }
 
-func generateWheelGIF(w io.Writer, options []string, target, fps, spins, duration, linger int) error {
+func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) error {
 	const RADIUS = 400
 
 	const W, H = RADIUS * 2, RADIUS * 2
 
 	cx, cy := float64(W)/2, float64(H)/2
 
-	destination := float64(spins)*2*math.Pi + clockWiseToTarget(options, target)
+	spins := float64(duration) * 1.0
+	rotations := spins * 2 * math.Pi
+	required := clockWiseToTarget(options, target)
+	destination := rotations + required
 
 	delay := 100 / fps
 
-	spinning := fps * duration
-	lingering := fps * linger
-	frames := spinning + lingering
+	frames := fps * duration
 
 	images := make([]*image.Paletted, frames)
 	delays := make([]int, frames)
@@ -226,13 +227,8 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, spins, duratio
 		go func(frame int) {
 			defer wg.Done()
 
-			animation := float64(frame) / float64(spinning-1)
+			animation := float64(frame) / float64(frames-1)
 			eased := 1 - math.Pow(1-animation, 3)
-
-			if frame >= spinning {
-				animation = BLINKING_END
-				eased = 1.0
-			}
 
 			frameDC := gg.NewContext(W, H)
 
@@ -274,7 +270,8 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, spins, duratio
 	}
 
 	return gif.EncodeAll(w, &gif.GIF{
-		Image: images,
-		Delay: delays,
+		Image:     images,
+		Delay:     delays,
+		LoopCount: -1,
 	})
 }
