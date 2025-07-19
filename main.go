@@ -16,14 +16,61 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const DEFAULT_PORT = "8080"
+const DEFAULT_CACHE_MAX_BYTES int64 = 2 << 30
+const DEFAULT_CACHE_NUM_COUNTERS int64 = 10240
+const DEFAULT_CACHE_BUFFER_ITEMS int64 = 64
+const DEFAULT_CACHE_TTL_HOURS time.Duration = 24 * time.Hour
+
 var cache *ristretto.Cache
+var cacheTTL time.Duration
 
 func init() {
-	var err error
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Warning: Failed to load environment variables in init(). Using defaults/existing env.")
+	}
+
+	maxCost := DEFAULT_CACHE_MAX_BYTES
+	if val := os.Getenv("CACHE_MAX_BYTES"); val != "" {
+		if parsed, err := strconv.ParseInt(val, 10, 64); err != nil {
+			log.Printf("Warning: Invalid CACHE_MAX_BYTES '%s'. Using default %d bytes.", val, maxCost)
+		} else {
+			maxCost = parsed
+		}
+	}
+
+	numCounters := DEFAULT_CACHE_NUM_COUNTERS
+	if val := os.Getenv("CACHE_NUM_COUNTERS"); val != "" {
+		if parsed, err := strconv.ParseInt(val, 10, 64); err != nil {
+			log.Printf("Warning: Invalid CACHE_NUM_COUNTERS '%s'. Using default %d.", val, numCounters)
+		} else {
+			numCounters = parsed
+		}
+	}
+
+	bufferItems := DEFAULT_CACHE_BUFFER_ITEMS
+	if val := os.Getenv("CACHE_BUFFER_ITEMS"); val != "" {
+		if parsed, err := strconv.ParseInt(val, 10, 64); err != nil {
+			log.Printf("Warning: Invalid CACHE_BUFFER_ITEMS '%s'. Using default %d.", val, bufferItems)
+		} else {
+			bufferItems = parsed
+		}
+	}
+
+	cacheTTL = DEFAULT_CACHE_TTL_HOURS
+	if val := os.Getenv("CACHE_TTL_HOURS"); val != "" {
+		if parsed, err := strconv.Atoi(val); err != nil {
+			log.Printf("Warning: Invalid CACHE_TTL_HOURS '%s'. Using default %s.", val, cacheTTL)
+		} else {
+			cacheTTL = time.Duration(parsed) * time.Hour
+		}
+	}
+
 	cache, err = ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,
-		MaxCost:     200 << 20,
-		BufferItems: 64,
+		NumCounters: numCounters,
+		MaxCost:     maxCost,
+		BufferItems: bufferItems,
 		Metrics:     true,
 	})
 	if err != nil {
@@ -110,7 +157,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	gif := buf.Bytes()
 
-	cache.SetWithTTL(cacheKey, gif, int64(len(gif)), 24*time.Hour)
+	cache.SetWithTTL(cacheKey, gif, int64(len(gif)), cacheTTL)
 
 	w.Header().Set("Content-Type", "image/gif")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
@@ -125,8 +172,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		fmt.Println("No port has been configured in environment variables")
-		return
+		port = DEFAULT_PORT
 	}
 
 	addr := fmt.Sprintf(":%s", port)
