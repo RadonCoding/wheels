@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,29 +12,52 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgraph-io/ristretto"
 	"github.com/joho/godotenv"
 )
+
+var cache *ristretto.Cache
+
+func init() {
+	var err error
+	cache, err = ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e7,
+		MaxCost:     200 << 20,
+		BufferItems: 64,
+		Metrics:     true,
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize cache: %v", err)
+	}
+}
+
+func createCacheKey(options []string, target, fps, duration int) string {
+	key := fmt.Sprintf("options=%s&target=%d&fps=%d&duration=%d",
+		strings.Join(options, ","), target, fps, duration)
+	hasher := sha256.New()
+	hasher.Write([]byte(key))
+	return hex.EncodeToString(hasher.Sum(nil))
+}
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	optionsParam := query.Get("options")
-	targetParam := query.Get("target")
 	if optionsParam == "" {
 		http.Error(w, "Missing 'options' query parameter", http.StatusBadRequest)
 		return
 	}
-	if targetParam == "" {
-		http.Error(w, "Missing 'target' query parameter", http.StatusBadRequest)
-		return
-	}
-
 	options := strings.Split(optionsParam, ",")
 	if len(options) < 2 {
 		http.Error(w, "Provide at least two options", http.StatusBadRequest)
 		return
 	}
 
+	targetParam := query.Get("target")
+	if targetParam == "" {
+		http.Error(w, "Missing 'target' query parameter", http.StatusBadRequest)
+		return
+	}
 	target, err := strconv.Atoi(targetParam)
 	if err != nil || target < 0 || target >= len(options) {
 		http.Error(w, "Invalid 'target' index", http.StatusBadRequest)
@@ -59,6 +84,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		duration = clamp(duration, 1, 30)
 	}
 
+	cacheKey := createCacheKey(options, target, fps, duration)
+	if cached, found := cache.Get(cacheKey); found {
+		log.Printf("Serving GIF from cache for key: %s", cacheKey)
+		gif := cached.([]byte)
+		w.Header().Set("Content-Type", "image/gif")
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		w.Write(gif)
+		return
+	}
+
 	start := time.Now()
 
 	var buf bytes.Buffer
@@ -73,8 +108,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Generated wheel GIF in %v (duration=%d, fps=%d)", elapsed, duration, fps)
 
+	gif := buf.Bytes()
+
+	cache.SetWithTTL(cacheKey, gif, int64(len(gif)), 24*time.Hour)
+
 	w.Header().Set("Content-Type", "image/gif")
-	w.Write(buf.Bytes())
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	w.Write(gif)
 }
 
 func main() {
