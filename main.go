@@ -63,6 +63,7 @@ func clamp(value, min, max int) int {
 	return value
 }
 
+// Returns black or white depending on the color brightness
 func getContrastColor(bg color.Color) color.Color {
 	r, g, b, _ := bg.RGBA()
 	brightness := (0.299*float64(r) + 0.587*float64(g) + 0.114*float64(b)) / 65535
@@ -154,6 +155,7 @@ func drawArrow(dc *gg.Context, cx float64, cy float64, radius float64) {
 	dc.Stroke()
 }
 
+// Uses the same logic as the wheel drawing to calculate how much to rotate to reach a specific option
 func calculateRotationOffset(options []string, target int) float64 {
 	angleStep := 2 * math.Pi / float64(len(options))
 	startAngle := angleStep * float64(target)
@@ -162,6 +164,7 @@ func calculateRotationOffset(options []string, target int) float64 {
 	return math.Mod((3*math.Pi/2)-midAngle+2*math.Pi, 2*math.Pi)
 }
 
+// Creates a palette by sampling pixels from an image
 func createPalette(img image.Image, max int) []color.Color {
 	colors := make(map[color.RGBA]struct{})
 	bounds := img.Bounds()
@@ -192,6 +195,7 @@ func createPalette(img image.Image, max int) []color.Color {
 	return palette
 }
 
+// Magic
 func generateWheelGIF(w io.Writer, options []string, target int, frames int, spins int, duration int) error {
 	const width, height = 512, 512
 	const radius = 200
@@ -210,13 +214,13 @@ func generateWheelGIF(w io.Writer, options []string, target int, frames int, spi
 	drawArrow(arrowDC, cx, cy, radius)
 	arrow := arrowDC.Image()
 
+	// Sample the pieces into a single image to compute the palette for the GIF
 	sampleDC := gg.NewContext(width, height)
 	sampleDC.SetRGBA(0, 0, 0, 0)
 	sampleDC.Clear()
 	sampleDC.DrawImage(wheel, 0, 0)
 	sampleDC.DrawImage(arrow, 0, 0)
 	sample := sampleDC.Image()
-
 	palette := createPalette(sample, 256)
 
 	required := (float64(spins) * 2 * math.Pi) + calculateRotationOffset(options, target)
