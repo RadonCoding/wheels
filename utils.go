@@ -15,11 +15,16 @@ func clamp(value, min, max int) int {
 	return value
 }
 
-func interpolate(c1, c2 color.RGBA, factor float64) color.RGBA {
-	r := uint8(float64(c1.R)*(1-factor) + float64(c2.R)*factor)
-	g := uint8(float64(c1.G)*(1-factor) + float64(c2.G)*factor)
-	b := uint8(float64(c1.B)*(1-factor) + float64(c2.B)*factor)
-	a := uint8(float64(c1.A)*(1-factor) + float64(c2.A)*factor)
+func interpolate(c1, c2 color.Color, factor float64) color.RGBA {
+	r1, g1, b1, a1 := c1.RGBA()
+	r2, g2, b2, a2 := c2.RGBA()
+	convert := func(x uint32) float64 {
+		return float64(x) / 257.0
+	}
+	r := uint8(convert(r1)*(1-factor) + convert(r2)*factor)
+	g := uint8(convert(g1)*(1-factor) + convert(g2)*factor)
+	b := uint8(convert(b1)*(1-factor) + convert(b2)*factor)
+	a := uint8(convert(a1)*(1-factor) + convert(a2)*factor)
 	return color.RGBA{r, g, b, a}
 }
 

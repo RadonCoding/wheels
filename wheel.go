@@ -15,8 +15,6 @@ import (
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
-
-	_ "net/http/pprof"
 )
 
 var (
@@ -48,7 +46,48 @@ func drawWheelBorderImage(width, height int, cx, cy, radius float64) image.Image
 	return dc.Image()
 }
 
-func drawWheel(dc *gg.Context, options []string, cx, cy, radius, rotation float64) {
+const (
+	BLINKING_START = 0.9
+	BLINKING_END   = 1.0
+)
+
+func getTextColor(animation float64) color.Color {
+	if animation < BLINKING_START {
+		return color.White
+	}
+	if animation <= BLINKING_END {
+		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
+		return interpolate(color.White, colorRed, phase)
+	}
+	return colorRed
+}
+
+func getLightColor(angle, animation, rotation float64) color.RGBA {
+	if animation < BLINKING_START {
+		relative := math.Mod(angle-rotation, 2*math.Pi)
+		progress := relative / (2 * math.Pi)
+		brightness := (math.Sin(progress*2*math.Pi*3) + 1) / 2
+		return interpolate(colorLightsInactive, colorBlurple, brightness)
+	}
+	if animation >= BLINKING_START && animation <= BLINKING_END {
+		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
+		return interpolate(colorLightsInactive, colorBlurple, phase)
+	}
+	return colorRed
+}
+
+func getArrowColor(animation float64) color.RGBA {
+	if animation < BLINKING_START {
+		return colorArrowInactive
+	}
+	if animation >= BLINKING_START && animation <= BLINKING_END {
+		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
+		return interpolate(colorArrowInactive, colorRed, phase)
+	}
+	return colorRed
+}
+
+func drawWheel(dc *gg.Context, options []string, target int, cx, cy, radius, animation, rotation float64) {
 	outerRadius := radius
 	innerRadius := outerRadius * 0.95
 
@@ -90,7 +129,11 @@ func drawWheel(dc *gg.Context, options []string, cx, cy, radius, rotation float6
 		// Draw the label
 		dc.SetColor(color.Black)
 		dc.DrawStringAnchored(label, 1, 1, 0.5, 0.5)
-		dc.SetColor(color.White)
+		var fg color.Color = color.White
+		if i == target {
+			fg = getTextColor(animation)
+		}
+		dc.SetColor(fg)
 		dc.DrawStringAnchored(label, 0, 0, 0.5, 0.5)
 
 		dc.Pop()
@@ -117,36 +160,6 @@ func drawWheel(dc *gg.Context, options []string, cx, cy, radius, rotation float6
 	dc.SetColor(colorOutline)
 	dc.DrawCircle(cx, cy, hubRadius)
 	dc.Stroke()
-}
-
-const (
-	BLINKING_START = 0.9
-	BLINKING_END   = 1.0
-)
-
-func getLightColor(angle, animation, rotation float64) color.RGBA {
-	if animation < BLINKING_START {
-		relative := math.Mod(angle-rotation, 2*math.Pi)
-		progress := relative / (2 * math.Pi)
-		brightness := (math.Sin(progress*2*math.Pi*3) + 1) / 2
-		return interpolate(colorLightsInactive, colorBlurple, brightness)
-	}
-	if animation >= BLINKING_START && animation <= BLINKING_END {
-		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
-		return interpolate(colorLightsInactive, colorBlurple, phase)
-	}
-	return colorRed
-}
-
-func getArrowColor(animation float64) color.RGBA {
-	if animation < BLINKING_START {
-		return colorArrowInactive
-	}
-	if animation >= BLINKING_START && animation <= BLINKING_END {
-		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
-		return interpolate(colorArrowInactive, colorRed, phase)
-	}
-	return colorRed
 }
 
 func drawLights(dc *gg.Context, options []string, cx, cy, radius, animation, rotation float64) {
@@ -199,7 +212,7 @@ func drawArrow(dc *gg.Context, cx, cy, radius, animation float64) {
 }
 
 func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) error {
-	const RADIUS = 400
+	const RADIUS = 200
 
 	const W, H = RADIUS * 2, RADIUS * 2
 
@@ -225,6 +238,8 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 	workerCount := runtime.NumCPU()
 	sem := make(chan struct{}, workerCount)
 
+	border := drawWheelBorderImage(W, H, cx, cy, RADIUS)
+
 	for frame := 0; frame < frames; frame++ {
 		sem <- struct{}{}
 		go func(frame int) {
@@ -238,11 +253,10 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 			frameDC := gg.NewContext(W, H)
 
 			rotation := math.Min(destination, destination*eased)
-			drawWheel(frameDC, options, cx, cy, RADIUS, rotation)
+			drawWheel(frameDC, options, target, cx, cy, RADIUS, animation, rotation)
 
 			drawArrow(frameDC, cx, cy, RADIUS, animation)
 
-			border := drawWheelBorderImage(W, H, cx, cy, RADIUS)
 			frameDC.DrawImage(border, 0, 0)
 
 			drawLights(frameDC, options, cx, cy, RADIUS, animation, rotation)
