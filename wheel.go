@@ -12,17 +12,26 @@ import (
 
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
-	"github.com/lucasb-eyer/go-colorful"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 )
 
+var (
+	colorBgPrimary      = color.RGBA{54, 57, 63, 255}    // #36393F
+	colorBgSecondary    = color.RGBA{47, 49, 54, 255}    // #2F3136
+	colorOutline        = color.RGBA{32, 34, 37, 255}    // #202225
+	colorBlurple        = color.RGBA{88, 101, 242, 255}  // #5865F2
+	colorRed            = color.RGBA{237, 66, 69, 255}   // #ED4245
+	colorArrowInactive  = color.RGBA{185, 187, 190, 255} // #B9BBBE
+	colorLightsInactive = color.RGBA{79, 84, 92, 255}    // #4F545C
+)
+
 func drawWheel(dc *gg.Context, options []string, cx float64, cy float64, radius float64, rotation float64) {
 	outerRadius := radius
-	innerRadius := radius * 0.9
+	innerRadius := radius * 0.95 // Thinner border
 
 	// Draw outline
-	dc.SetRGB255(50, 50, 50)
+	dc.SetColor(colorOutline)
 	dc.DrawCircle(cx, cy, outerRadius)
 	dc.Fill()
 	dc.SetRGBA(0, 0, 0, 0)
@@ -35,7 +44,7 @@ func drawWheel(dc *gg.Context, options []string, cx float64, cy float64, radius 
 		log.Fatal(err)
 	}
 	dc.SetFontFace(truetype.NewFace(regular, &truetype.Options{
-		Size:    14,
+		Size:    12,
 		Hinting: font.HintingFull,
 	}))
 
@@ -48,11 +57,13 @@ func drawWheel(dc *gg.Context, options []string, cx float64, cy float64, radius 
 
 		dc.MoveTo(cx, cy)
 		dc.DrawArc(cx, cy, innerRadius, startAngle, endAngle)
+		dc.ClosePath()
 
-		goldenRatioConjugate := 0.61803398875
-		hue := math.Mod(float64(i)*goldenRatioConjugate, 1.0) * 360.0
-		bg := colorful.Hsv(hue, 0.8, 0.9)
-		dc.SetColor(bg)
+		if i%2 == 0 {
+			dc.SetColor(colorBgPrimary)
+		} else {
+			dc.SetColor(colorBgSecondary)
+		}
 		dc.Fill()
 
 		midAngle := (startAngle + endAngle) / 2
@@ -61,22 +72,23 @@ func drawWheel(dc *gg.Context, options []string, cx float64, cy float64, radius 
 
 		dc.Push()
 		dc.Translate(labelX, labelY)
-		dc.Rotate(midAngle)
 
-		angleDeg := midAngle * 180 / math.Pi
-		if angleDeg > 90 && angleDeg < 270 {
+		if midAngle > math.Pi/2 && midAngle < 3*math.Pi/2 {
 			dc.Rotate(math.Pi)
 		}
 
+		// Draw the label
 		dc.SetColor(color.Black)
+		dc.DrawStringAnchored(label, 1, 1, 0.5, 0.5)
+		dc.SetColor(color.White)
 		dc.DrawStringAnchored(label, 0, 0, 0.5, 0.5)
 
 		dc.Pop()
 	}
 
 	// Draw division lines
-	dc.SetLineWidth(4)
-	dc.SetRGB255(50, 50, 50)
+	dc.SetLineWidth(2)
+	dc.SetColor(colorOutline)
 	for i := 0; i < len(options); i++ {
 		angle := rotation + angleStep*float64(i)
 		x := cx + math.Cos(angle)*innerRadius
@@ -85,6 +97,16 @@ func drawWheel(dc *gg.Context, options []string, cx float64, cy float64, radius 
 		dc.LineTo(x, y)
 		dc.Stroke()
 	}
+
+	// Draw hub
+	hubRadius := radius * 0.20
+	dc.SetColor(colorBlurple)
+	dc.DrawCircle(cx, cy, hubRadius)
+	dc.Fill()
+	dc.SetLineWidth(2)
+	dc.SetColor(colorOutline)
+	dc.DrawCircle(cx, cy, hubRadius)
+	dc.Stroke()
 }
 
 const (
@@ -92,45 +114,38 @@ const (
 	BLINKING_END   = 1.0
 )
 
-func getLightColor(angle, animation, rotation float64, inactive, spinning, stopped color.RGBA) color.RGBA {
+func getLightColor(angle, animation, rotation float64) color.RGBA {
 	if animation < BLINKING_START {
 		relative := math.Mod(angle-rotation, 2*math.Pi)
 		progress := relative / (2 * math.Pi)
 		brightness := (math.Sin(progress*2*math.Pi*3) + 1) / 2
-		return interpolate(inactive, spinning, brightness)
+		return interpolate(colorLightsInactive, colorBlurple, brightness)
 	}
 	if animation >= BLINKING_START && animation <= BLINKING_END {
 		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
-		blink := (math.Sin(phase*2*math.Pi) + 1) / 2
-		return interpolate(stopped, inactive, blink)
+		return interpolate(colorLightsInactive, colorBlurple, phase)
 	}
-	return stopped
+	return colorRed
 }
 
-func getArrowColor(animation float64, inactive, stopped color.RGBA) color.RGBA {
+func getArrowColor(animation float64) color.RGBA {
 	if animation < BLINKING_START {
-		return inactive
+		return colorArrowInactive
 	}
-
 	if animation >= BLINKING_START && animation <= BLINKING_END {
 		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
-		blink := (math.Sin(phase*2*math.Pi) + 1) / 2
-		return interpolate(stopped, inactive, blink)
+		return interpolate(colorArrowInactive, colorRed, phase)
 	}
-	return stopped
+	return colorRed
 }
 
 func drawLights(dc *gg.Context, options []string, cx float64, cy float64, radius float64, animation float64, rotation float64) {
 	outerRadius := radius
-	innerRadius := radius * 0.9
-
-	inactive := color.RGBA{100, 100, 100, 255}
-	spinning := color.RGBA{255, 255, 0, 255}
-	stopped := color.RGBA{255, 0, 0, 255}
+	innerRadius := radius * 0.95
 
 	// Draw lights
-	lightCount := len(options) * 3
-	lightRadius := float64(lightCount) / 4
+	lightCount := len(options) * 2
+	lightRadius := 3.0
 	lightOffset := (outerRadius + innerRadius) / 2
 	angleStep := 2 * math.Pi / float64(lightCount)
 
@@ -139,40 +154,37 @@ func drawLights(dc *gg.Context, options []string, cx float64, cy float64, radius
 		x := cx + math.Cos(angle)*lightOffset
 		y := cy + math.Sin(angle)*lightOffset
 
-		animated := getLightColor(angle, animation, rotation, inactive, spinning, stopped)
+		animated := getLightColor(angle, animation, rotation)
 
-		dc.SetRGBA255(int(animated.R), int(animated.G), int(animated.B), int(animated.A))
+		dc.SetColor(animated)
 		dc.DrawCircle(x, y, lightRadius)
 		dc.Fill()
 	}
 }
 
 func drawArrow(dc *gg.Context, cx float64, cy float64, radius float64, animation float64) {
-	innerRadius := radius * 0.9
+	outerRadius := radius
 
-	inactive := color.RGBA{100, 100, 100, 255}
-	stopped := color.RGBA{255, 0, 0, 255}
-
-	const ARROW_SIZE = 32.0
+	const ARROW_SIZE = 30.0
 
 	tipX := cx
-	tipY := cy - innerRadius + ARROW_SIZE
+	tipY := cy - outerRadius - 5
 
-	// Draw arrow
+	// Draw arrow shape
 	dc.NewSubPath()
-	dc.MoveTo(tipX, tipY)
-	dc.LineTo(tipX-ARROW_SIZE/2, tipY-ARROW_SIZE)
-	dc.LineTo(tipX+ARROW_SIZE/2, tipY-ARROW_SIZE)
+	dc.MoveTo(tipX, tipY+ARROW_SIZE)
+	dc.LineTo(tipX-ARROW_SIZE/2, tipY)
+	dc.LineTo(tipX+ARROW_SIZE/2, tipY)
 	dc.ClosePath()
 
 	// Fill arrow color
-	animated := getArrowColor(animation, inactive, stopped)
-	dc.SetRGBA255(int(animated.R), int(animated.G), int(animated.B), int(animated.A))
+	animated := getArrowColor(animation)
+	dc.SetColor(animated)
 	dc.FillPreserve()
 
-	// Draw outline
-	dc.SetLineWidth(3)
-	dc.SetRGB(0, 0, 0)
+	// Draw arrow outline
+	dc.SetLineWidth(2)
+	dc.SetColor(colorOutline)
 	dc.Stroke()
 }
 
@@ -206,6 +218,11 @@ func generateWheelGIF(w io.Writer, options []string, target int, fps int, spins 
 			animation := float64(frame) / float64(spinning-1)
 			eased := 1 - math.Pow(1-animation, 3)
 
+			if frame >= spinning {
+				animation = BLINKING_END
+				eased = 1.0
+			}
+
 			dc := gg.NewContext(W, H)
 
 			rotation := math.Min(destination, destination*eased)
@@ -220,11 +237,18 @@ func generateWheelGIF(w io.Writer, options []string, target int, fps int, spins 
 
 	wg.Wait()
 
-	combined := image.NewRGBA(image.Rect(0, 0, W, H*frames))
-	for i, img := range rendered {
-		draw.Draw(combined, image.Rect(0, i*H, W, (i+1)*H), img, image.Point{0, 0}, draw.Src)
+	palette := []color.Color{
+		color.Transparent,
+		color.Black,
+		color.White,
+		colorBgPrimary,
+		colorBgSecondary,
+		colorOutline,
+		colorBlurple,
+		colorRed,
+		colorArrowInactive,
+		colorLightsInactive,
 	}
-	palette := createPalette(combined, 128)
 
 	for i, render := range rendered {
 		bounds := render.Bounds()
