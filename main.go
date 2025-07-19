@@ -28,7 +28,7 @@ var cacheTTL time.Duration
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Warning: Failed to load environment variables in init(). Using defaults/existing env.")
+		log.Println("Failed to load environment variables")
 	}
 
 	maxCost := DEFAULT_CACHE_MAX_BYTES
