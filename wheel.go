@@ -251,6 +251,7 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 		colorLightsInactive,
 	}
 
+	// Processing frames in parallel :>
 	for frame := 0; frame < frames; frame++ {
 		sem <- struct{}{}
 		go func(frame int) {
