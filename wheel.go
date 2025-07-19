@@ -15,6 +15,8 @@ import (
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
+
+	_ "net/http/pprof"
 )
 
 var (
