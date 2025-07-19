@@ -26,17 +26,28 @@ var (
 	colorLightsInactive = color.RGBA{79, 84, 92, 255}    // #4F545C
 )
 
-func drawWheel(dc *gg.Context, options []string, cx float64, cy float64, radius float64, rotation float64) {
+func drawWheelBorderImage(width, height int, cx, cy, radius float64) image.Image {
+	dc := gg.NewContext(width, height)
+
 	outerRadius := radius
 	innerRadius := radius * 0.95
 
-	// Draw outline
 	dc.SetColor(colorOutline)
+
+	dc.NewSubPath()
 	dc.DrawCircle(cx, cy, outerRadius)
-	dc.Fill()
-	dc.SetRGBA(0, 0, 0, 0)
+
+	dc.NewSubPath()
 	dc.DrawCircle(cx, cy, innerRadius)
+	dc.SetFillRule(gg.FillRuleEvenOdd)
 	dc.Fill()
+
+	return dc.Image()
+}
+
+func drawWheel(dc *gg.Context, options []string, cx, cy, radius, rotation float64) {
+	outerRadius := radius
+	innerRadius := outerRadius * 0.95
 
 	// Load better font
 	regular, err := truetype.Parse(goregular.TTF)
@@ -44,7 +55,7 @@ func drawWheel(dc *gg.Context, options []string, cx float64, cy float64, radius 
 		log.Fatal(err)
 	}
 	dc.SetFontFace(truetype.NewFace(regular, &truetype.Options{
-		Size:    12,
+		Size:    radius * 0.06,
 		Hinting: font.HintingFull,
 	}))
 
@@ -139,13 +150,12 @@ func getArrowColor(animation float64) color.RGBA {
 	return colorRed
 }
 
-func drawLights(dc *gg.Context, options []string, cx float64, cy float64, radius float64, animation float64, rotation float64) {
+func drawLights(dc *gg.Context, options []string, cx, cy, radius, animation, rotation float64) {
 	outerRadius := radius
-	innerRadius := radius * 0.95
+	innerRadius := outerRadius * 0.95
 
-	// Draw lights
 	lightCount := len(options) * 2
-	lightRadius := 3.0
+	lightRadius := radius * 0.015
 	lightOffset := (outerRadius + innerRadius) / 2
 	angleStep := 2 * math.Pi / float64(lightCount)
 
@@ -162,34 +172,35 @@ func drawLights(dc *gg.Context, options []string, cx float64, cy float64, radius
 	}
 }
 
-func drawArrow(dc *gg.Context, cx float64, cy float64, radius float64, animation float64) {
+func drawArrow(dc *gg.Context, cx, cy, radius, animation float64) {
 	outerRadius := radius
+	innerRadius := outerRadius * 0.95
 
-	const ARROW_SIZE = 30.0
+	arrowSize := radius * 0.15
+	// Places the arrow slightly inside the border
+	arrowOffset := innerRadius + arrowSize*0.1
 
 	tipX := cx
-	tipY := cy - outerRadius - 5
+	tipY := cy - arrowOffset
 
-	// Draw arrow shape
 	dc.NewSubPath()
-	dc.MoveTo(tipX, tipY+ARROW_SIZE)
-	dc.LineTo(tipX-ARROW_SIZE/2, tipY)
-	dc.LineTo(tipX+ARROW_SIZE/2, tipY)
+	dc.MoveTo(tipX, tipY+arrowSize)
+	dc.LineTo(tipX-arrowSize/2, tipY)
+	dc.LineTo(tipX+arrowSize/2, tipY)
 	dc.ClosePath()
 
-	// Fill arrow color
 	animated := getArrowColor(animation)
 	dc.SetColor(animated)
 	dc.FillPreserve()
 
-	// Draw arrow outline
-	dc.SetLineWidth(2)
+	scaledLineWidth := radius * 0.01
+	dc.SetLineWidth(scaledLineWidth)
 	dc.SetColor(colorOutline)
 	dc.Stroke()
 }
 
-func generateWheelGIF(w io.Writer, options []string, target int, fps int, spins int, duration int, linger int) error {
-	const RADIUS = 200
+func generateWheelGIF(w io.Writer, options []string, target, fps, spins, duration, linger int) error {
+	const RADIUS = 400
 
 	const W, H = RADIUS * 2, RADIUS * 2
 
@@ -223,15 +234,19 @@ func generateWheelGIF(w io.Writer, options []string, target int, fps int, spins 
 				eased = 1.0
 			}
 
-			dc := gg.NewContext(W, H)
+			frameDC := gg.NewContext(W, H)
 
 			rotation := math.Min(destination, destination*eased)
-			drawWheel(dc, options, cx, cy, RADIUS, rotation)
+			drawWheel(frameDC, options, cx, cy, RADIUS, rotation)
 
-			drawLights(dc, options, cx, cy, RADIUS, animation, rotation)
-			drawArrow(dc, cx, cy, RADIUS, animation)
+			drawArrow(frameDC, cx, cy, RADIUS, animation)
 
-			rendered[frame] = dc.Image()
+			border := drawWheelBorderImage(W, H, cx, cy, RADIUS)
+			frameDC.DrawImage(border, 0, 0)
+
+			drawLights(frameDC, options, cx, cy, RADIUS, animation, rotation)
+
+			rendered[frame] = frameDC.Image()
 		}(frame)
 	}
 
