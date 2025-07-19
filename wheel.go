@@ -230,8 +230,6 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 	images := make([]*image.Paletted, frames)
 	delays := make([]int, frames)
 
-	rendered := make([]image.Image, frames)
-
 	var wg sync.WaitGroup
 	wg.Add(frames)
 
@@ -239,33 +237,6 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 	sem := make(chan struct{}, workerCount)
 
 	border := drawWheelBorderImage(W, H, cx, cy, RADIUS)
-
-	for frame := 0; frame < frames; frame++ {
-		sem <- struct{}{}
-		go func(frame int) {
-			defer func() { <-sem }()
-
-			defer wg.Done()
-
-			animation := float64(frame) / float64(frames-1)
-			eased := 1 - math.Pow(1-animation, 3)
-
-			frameDC := gg.NewContext(W, H)
-
-			rotation := math.Min(destination, destination*eased)
-			drawWheel(frameDC, options, target, cx, cy, RADIUS, animation, rotation)
-
-			drawArrow(frameDC, cx, cy, RADIUS, animation)
-
-			frameDC.DrawImage(border, 0, 0)
-
-			drawLights(frameDC, options, cx, cy, RADIUS, animation, rotation)
-
-			rendered[frame] = frameDC.Image()
-		}(frame)
-	}
-
-	wg.Wait()
 
 	palette := []color.Color{
 		color.Transparent,
@@ -280,13 +251,33 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 		colorLightsInactive,
 	}
 
-	for i, render := range rendered {
-		bounds := render.Bounds()
-		paletted := image.NewPaletted(bounds, palette)
-		draw.Draw(paletted, bounds, render, bounds.Min, draw.Src)
-		images[i] = paletted
-		delays[i] = delay
+	for frame := 0; frame < frames; frame++ {
+		sem <- struct{}{}
+		go func(frame int) {
+			defer func() { <-sem }()
+			defer wg.Done()
+
+			animation := float64(frame) / float64(frames-1)
+			eased := 1 - math.Pow(1-animation, 3)
+
+			frameDC := gg.NewContext(W, H)
+
+			rotation := math.Min(destination, destination*eased)
+			drawWheel(frameDC, options, target, cx, cy, RADIUS, animation, rotation)
+			drawArrow(frameDC, cx, cy, RADIUS, animation)
+			frameDC.DrawImage(border, 0, 0)
+			drawLights(frameDC, options, cx, cy, RADIUS, animation, rotation)
+
+			render := frameDC.Image()
+			bounds := render.Bounds()
+			paletted := image.NewPaletted(bounds, palette)
+			draw.Draw(paletted, bounds, render, bounds.Min, draw.Src)
+			images[frame] = paletted
+			delays[frame] = delay
+		}(frame)
 	}
+
+	wg.Wait()
 
 	return gif.EncodeAll(w, &gif.GIF{
 		Image:     images,
