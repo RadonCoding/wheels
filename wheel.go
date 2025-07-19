@@ -49,7 +49,8 @@ func drawWheel(dc *gg.Context, options []string, cx float64, cy float64, radius 
 		dc.MoveTo(cx, cy)
 		dc.DrawArc(cx, cy, innerRadius, startAngle, endAngle)
 
-		hue := float64(i) / float64(len(options)) * 360.0
+		goldenRatioConjugate := 0.61803398875
+		hue := math.Mod(float64(i)*goldenRatioConjugate, 1.0) * 360.0
 		bg := colorful.Hsv(hue, 0.8, 0.9)
 		dc.SetColor(bg)
 		dc.Fill()
