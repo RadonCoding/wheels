@@ -131,9 +131,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		duration = clamp(duration, 1, 30)
 	}
 
-	cacheKey := createCacheKey(options, target, fps, duration)
-	if cached, found := cache.Get(cacheKey); found {
-		log.Printf("Serving GIF from cache for key: %s", cacheKey)
+	key := createCacheKey(options, target, fps, duration)
+	if cached, found := cache.Get(key); found {
+		log.Printf("Serving GIF from cache for key: %s", key)
 		gif := cached.([]byte)
 		w.Header().Set("Content-Type", "image/gif")
 		w.Header().Set("Cache-Control", "public, max-age=3600")
@@ -157,7 +157,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	gif := buf.Bytes()
 
-	cache.SetWithTTL(cacheKey, gif, int64(len(gif)), cacheTTL)
+	cache.SetWithTTL(key, gif, int64(len(gif)), cacheTTL)
 
 	w.Header().Set("Content-Type", "image/gif")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
