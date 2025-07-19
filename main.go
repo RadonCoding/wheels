@@ -17,8 +17,8 @@ import (
 )
 
 const DEFAULT_PORT = "8080"
-const DEFAULT_CACHE_MAX_BYTES int64 = 2 << 30
-const DEFAULT_CACHE_NUM_COUNTERS int64 = 10240
+const DEFAULT_CACHE_MAX_BYTES int64 = 5 << 30
+const DEFAULT_CACHE_NUM_COUNTERS int64 = 16384
 const DEFAULT_CACHE_BUFFER_ITEMS int64 = 64
 const DEFAULT_CACHE_TTL_HOURS time.Duration = 24 * time.Hour
 
@@ -49,15 +49,6 @@ func init() {
 		}
 	}
 
-	bufferItems := DEFAULT_CACHE_BUFFER_ITEMS
-	if val := os.Getenv("CACHE_BUFFER_ITEMS"); val != "" {
-		if parsed, err := strconv.ParseInt(val, 10, 64); err != nil {
-			log.Printf("Warning: Invalid CACHE_BUFFER_ITEMS '%s'. Using default %d.", val, bufferItems)
-		} else {
-			bufferItems = parsed
-		}
-	}
-
 	cacheTTL = DEFAULT_CACHE_TTL_HOURS
 	if val := os.Getenv("CACHE_TTL_HOURS"); val != "" {
 		if parsed, err := strconv.Atoi(val); err != nil {
@@ -70,8 +61,7 @@ func init() {
 	cache, err = ristretto.NewCache(&ristretto.Config{
 		NumCounters: numCounters,
 		MaxCost:     maxCost,
-		BufferItems: bufferItems,
-		Metrics:     true,
+		BufferItems: 64,
 	})
 	if err != nil {
 		log.Fatalf("Failed to initialize cache: %v", err)
