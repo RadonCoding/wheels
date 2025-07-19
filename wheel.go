@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"runtime"
 	"sync"
 
 	"github.com/fogleman/gg"
@@ -83,10 +84,6 @@ func drawWheel(dc *gg.Context, options []string, cx, cy, radius, rotation float6
 
 		dc.Push()
 		dc.Translate(labelX, labelY)
-
-		if midAngle > math.Pi/2 && midAngle < 3*math.Pi/2 {
-			dc.Rotate(math.Pi)
-		}
 
 		// Draw the label
 		dc.SetColor(color.Black)
@@ -223,8 +220,14 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 	var wg sync.WaitGroup
 	wg.Add(frames)
 
+	workerCount := runtime.NumCPU()
+	sem := make(chan struct{}, workerCount)
+
 	for frame := 0; frame < frames; frame++ {
+		sem <- struct{}{}
 		go func(frame int) {
+			defer func() { <-sem }()
+
 			defer wg.Done()
 
 			animation := float64(frame) / float64(frames-1)
