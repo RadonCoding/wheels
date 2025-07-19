@@ -236,8 +236,6 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 	workerCount := runtime.NumCPU()
 	sem := make(chan struct{}, workerCount)
 
-	border := drawWheelBorderImage(W, H, cx, cy, RADIUS)
-
 	palette := []color.Color{
 		color.Transparent,
 		color.Black,
@@ -250,6 +248,8 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 		colorArrowInactive,
 		colorLightsInactive,
 	}
+
+	border := drawWheelBorderImage(W, H, cx, cy, RADIUS)
 
 	// Processing frames in parallel :>
 	for frame := 0; frame < frames; frame++ {
