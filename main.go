@@ -17,10 +17,9 @@ import (
 )
 
 const DEFAULT_PORT = "8080"
-const DEFAULT_CACHE_MAX_BYTES int64 = 5 << 30
-const DEFAULT_CACHE_NUM_COUNTERS int64 = 16384
-const DEFAULT_CACHE_BUFFER_ITEMS int64 = 64
-const DEFAULT_CACHE_TTL_HOURS time.Duration = 24 * time.Hour
+const DEFAULT_CACHE_MAX_BYTES int64 = 200 * 1024 * 1024
+const DEFAULT_CACHE_NUM_COUNTERS int64 = 1024
+const DEFAULT_CACHE_TTL_HOURS time.Duration = 6 * time.Hour
 
 var cache *ristretto.Cache
 var cacheTTL time.Duration
