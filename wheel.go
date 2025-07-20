@@ -187,15 +187,16 @@ func (wr *WheelRenderer) drawWheel(theme Theme, dc *gg.Context, cx, cy, animatio
 		dc.LineTo(x, y)
 		dc.Stroke()
 	}
+}
 
-	// Draw hub
-	hubRadius := wr.OuterRadius * 0.20
+func (wr *WheelRenderer) drawCenter(theme Theme, dc *gg.Context, cx, cy float64) {
+	radius := wr.OuterRadius * 0.2
 	dc.SetColor(theme.Blurple)
-	dc.DrawCircle(cx, cy, hubRadius)
+	dc.DrawCircle(cx, cy, radius)
 	dc.Fill()
 	dc.SetLineWidth(2)
 	dc.SetColor(theme.Outline)
-	dc.DrawCircle(cx, cy, hubRadius)
+	dc.DrawCircle(cx, cy, radius)
 	dc.Stroke()
 }
 
@@ -295,11 +296,12 @@ func (wr *WheelRenderer) RenderGIF(w io.Writer) error {
 			dc.Clear()
 
 			dc.SetFontFace(truetype.NewFace(theme.Font, &truetype.Options{
-				Size:    wr.OuterRadius * 0.05,
+				Size:    wr.OuterRadius * 0.06,
 				Hinting: font.HintingFull,
 			}))
 
 			wr.drawWheel(theme, dc, cx, cy, animation, rotation)
+			wr.drawCenter(theme, dc, cx, cy)
 			wr.drawArrow(theme, dc, cx, cy, animation)
 			dc.DrawImage(border, 0, 0)
 			wr.drawLights(theme, dc, cx, cy, animation, rotation)
