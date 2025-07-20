@@ -200,6 +200,7 @@ func (wr *WheelRenderer) drawWheel(theme Theme, dc *gg.Context, cx, cy, animatio
 	dc.Stroke()
 }
 
+// Draws lights in a circle on the border of the wheel
 func (wr *WheelRenderer) drawLights(theme Theme, dc *gg.Context, cx, cy, animation, rotation float64) {
 	count := len(wr.Options) * 2
 	radius := wr.OuterRadius * 0.015
@@ -243,6 +244,7 @@ func (wr *WheelRenderer) drawArrow(theme Theme, dc *gg.Context, cx, cy, animatio
 	dc.Stroke()
 }
 
+// Calculates the rotation distance needed to bring a target position to the top of a circle
 func distanceToTarget(count, index int) float64 {
 	angle := 2 * math.Pi / float64(count)
 	start := angle * float64(index)
