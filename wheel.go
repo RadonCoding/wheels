@@ -44,11 +44,6 @@ type WheelRenderer struct {
 }
 
 func NewDefaultTheme() Theme {
-	ttf, err := truetype.Parse(goregular.TTF)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	theme := Theme{
 		Transparent:    color.Transparent,              // #00000000
 		Black:          color.Black,                    // #000000
@@ -60,7 +55,12 @@ func NewDefaultTheme() Theme {
 		Red:            color.RGBA{237, 66, 69, 255},   // #ED4245
 		ArrowInactive:  color.RGBA{185, 187, 190, 255}, // #B9BBBE
 		LightsInactive: color.RGBA{79, 84, 92, 255},    // #4F545C
-		Font:           ttf,
+	}
+
+	var err error
+	theme.Font, err = truetype.Parse(goregular.TTF)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	theme.Palette = []color.Color{
