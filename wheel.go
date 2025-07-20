@@ -138,11 +138,11 @@ func getArrowColor(theme Theme, animation float64) color.Color {
 
 func (wr *WheelRenderer) drawWheel(theme Theme, dc *gg.Context, cx, cy, animation, rotation float64) {
 	// Draw wheel
-	step := 2 * math.Pi / float64(len(wr.Options))
+	angle := 2 * math.Pi / float64(len(wr.Options))
 
 	for i, label := range wr.Options {
-		start := rotation + step*float64(i)
-		end := start + step
+		start := rotation + angle*float64(i)
+		end := start + angle
 
 		dc.MoveTo(cx, cy)
 		dc.DrawArc(cx, cy, wr.InnerRadius, start, end)
@@ -155,9 +155,10 @@ func (wr *WheelRenderer) drawWheel(theme Theme, dc *gg.Context, cx, cy, animatio
 		}
 		dc.Fill()
 
-		middle := (start + end) / 2
-		labelX := cx + math.Cos(middle)*wr.InnerRadius*0.6
-		labelY := cy + math.Sin(middle)*wr.InnerRadius*0.6
+		center := (start + end) / 2
+
+		labelX := cx + math.Cos(center)*wr.InnerRadius*0.6
+		labelY := cy + math.Sin(center)*wr.InnerRadius*0.6
 
 		dc.Push()
 		dc.Translate(labelX, labelY)
@@ -180,7 +181,7 @@ func (wr *WheelRenderer) drawWheel(theme Theme, dc *gg.Context, cx, cy, animatio
 	dc.SetLineWidth(2)
 	dc.SetColor(theme.Outline)
 	for i := 0; i < len(wr.Options); i++ {
-		angle := rotation + step*float64(i)
+		angle := rotation + angle*float64(i)
 		x := cx + math.Cos(angle)*wr.InnerRadius
 		y := cy + math.Sin(angle)*wr.InnerRadius
 		dc.MoveTo(cx, cy)
@@ -243,11 +244,12 @@ func (wr *WheelRenderer) drawArrow(theme Theme, dc *gg.Context, cx, cy, animatio
 }
 
 func distanceToTarget(count, index int) float64 {
-	step := 2 * math.Pi / float64(count)
-	start := step * float64(index)
-	end := start + step
-	middle := (start + end) / 2
-	return math.Mod((3*math.Pi/2)-middle+2*math.Pi, 2*math.Pi)
+	angle := 2 * math.Pi / float64(count)
+	start := angle * float64(index)
+	end := start + angle
+	center := (start + end) / 2
+	const top = (3 * math.Pi / 2)
+	return math.Mod(top-center+2*math.Pi, 2*math.Pi)
 }
 
 func (wr *WheelRenderer) RenderGIF(w io.Writer) error {
