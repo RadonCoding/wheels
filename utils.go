@@ -2,7 +2,6 @@ package main
 
 import (
 	"image/color"
-	"math"
 )
 
 func clamp(value, min, max int) int {
@@ -26,13 +25,4 @@ func interpolate(c1, c2 color.Color, factor float64) color.RGBA {
 	b := uint8(convert(b1)*(1-factor) + convert(b2)*factor)
 	a := uint8(convert(a1)*(1-factor) + convert(a2)*factor)
 	return color.RGBA{r, g, b, a}
-}
-
-// Uses the same logic as the wheel drawing to calculate how much to rotate to reach a specific option
-func clockWiseToTarget(options []string, target int) float64 {
-	angleStep := 2 * math.Pi / float64(len(options))
-	startAngle := angleStep * float64(target)
-	endAngle := startAngle + angleStep
-	midAngle := (startAngle + endAngle) / 2
-	return math.Mod((3*math.Pi/2)-midAngle+2*math.Pi, 2*math.Pi)
 }

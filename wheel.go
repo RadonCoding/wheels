@@ -242,13 +242,21 @@ func (wr *WheelRenderer) drawArrow(theme Theme, dc *gg.Context, cx, cy, animatio
 	dc.Stroke()
 }
 
+func distanceToTarget(count, index int) float64 {
+	step := 2 * math.Pi / float64(count)
+	start := step * float64(index)
+	end := start + step
+	middle := (start + end) / 2
+	return math.Mod((3*math.Pi/2)-middle+2*math.Pi, 2*math.Pi)
+}
+
 func (wr *WheelRenderer) RenderGIF(w io.Writer) error {
 	width, height := int(wr.OuterRadius*2), int(wr.OuterRadius*2)
 	cx, cy := float64(width)/2, float64(height)/2
 
 	spins := float64(wr.Duration) * 1.0
 	circles := spins * 2 * math.Pi
-	required := clockWiseToTarget(wr.Options, wr.Target)
+	required := distanceToTarget(len(wr.Options), wr.Target)
 	destination := circles + required
 
 	delay := 100 / wr.FPS
