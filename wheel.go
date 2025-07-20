@@ -17,29 +17,78 @@ import (
 	"golang.org/x/image/font/gofont/goregular"
 )
 
-var (
-	colorBgPrimary      = color.RGBA{54, 57, 63, 255}    // #36393F
-	colorBgSecondary    = color.RGBA{47, 49, 54, 255}    // #2F3136
-	colorOutline        = color.RGBA{32, 34, 37, 255}    // #202225
-	colorBlurple        = color.RGBA{88, 101, 242, 255}  // #5865F2
-	colorRed            = color.RGBA{237, 66, 69, 255}   // #ED4245
-	colorArrowInactive  = color.RGBA{185, 187, 190, 255} // #B9BBBE
-	colorLightsInactive = color.RGBA{79, 84, 92, 255}    // #4F545C
-)
+type Theme struct {
+	Transparent color.Color // #00000000
+	Black       color.Color // #000000
+	White       color.Color // #FFFFFF
 
-func drawWheelBorderImage(width, height int, cx, cy, radius float64) image.Image {
+	BgPrimary      color.Color // #36393F
+	BgSecondary    color.Color // #2F3136
+	Outline        color.Color // #202225
+	Blurple        color.Color // #5865F2
+	Red            color.Color // #ED4245
+	ArrowInactive  color.Color // #B9BBBE
+	LightsInactive color.Color // #4F545C
+
+	Font    *truetype.Font
+	Palette []color.Color
+}
+
+type WheelRenderer struct {
+	OuterRadius float64
+	InnerRadius float64
+	Options     []string
+	Target      int
+	FPS         int
+	Duration    int
+}
+
+func NewDefaultTheme() Theme {
+	ttf, err := truetype.Parse(goregular.TTF)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	theme := Theme{
+		Transparent:    color.Transparent,              // #00000000
+		Black:          color.Black,                    // #000000
+		White:          color.White,                    // #FFFFFF
+		BgPrimary:      color.RGBA{54, 57, 63, 255},    // #36393F
+		BgSecondary:    color.RGBA{47, 49, 54, 255},    // #2F3136
+		Outline:        color.RGBA{32, 34, 37, 255},    // #202225
+		Blurple:        color.RGBA{88, 101, 242, 255},  // #5865F2
+		Red:            color.RGBA{237, 66, 69, 255},   // #ED4245
+		ArrowInactive:  color.RGBA{185, 187, 190, 255}, // #B9BBBE
+		LightsInactive: color.RGBA{79, 84, 92, 255},    // #4F545C
+		Font:           ttf,
+	}
+
+	theme.Palette = []color.Color{
+		theme.Transparent,
+		theme.Black,
+		theme.White,
+		theme.BgPrimary,
+		theme.BgSecondary,
+		theme.Outline,
+		theme.Blurple,
+		theme.Red,
+		theme.ArrowInactive,
+		theme.LightsInactive,
+	}
+
+	return theme
+}
+
+func (wr *WheelRenderer) drawWheelBorderImage(theme Theme, width, height int, cx, cy float64) image.Image {
 	dc := gg.NewContext(width, height)
 
-	outerRadius := radius
-	innerRadius := radius * 0.95
-
-	dc.SetColor(colorOutline)
+	dc.SetColor(theme.Outline)
 
 	dc.NewSubPath()
-	dc.DrawCircle(cx, cy, outerRadius)
+	dc.DrawCircle(cx, cy, wr.OuterRadius)
 
 	dc.NewSubPath()
-	dc.DrawCircle(cx, cy, innerRadius)
+	dc.DrawCircle(cx, cy, wr.InnerRadius)
 	dc.SetFillRule(gg.FillRuleEvenOdd)
 	dc.Fill()
 
@@ -51,87 +100,75 @@ const (
 	BLINKING_END   = 1.0
 )
 
-func getTextColor(animation float64) color.Color {
+func getTextColor(theme Theme, animation float64) color.Color {
 	if animation < BLINKING_START {
-		return color.White
+		return theme.White
 	}
 	if animation <= BLINKING_END {
 		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
-		return interpolate(color.White, colorRed, phase)
+		return interpolate(theme.White, theme.Red, phase)
 	}
-	return colorRed
+	return theme.Red
 }
 
-func getLightColor(angle, animation, rotation float64) color.RGBA {
+func getLightColor(theme Theme, angle, animation, rotation float64) color.Color {
 	if animation < BLINKING_START {
 		relative := math.Mod(angle-rotation, 2*math.Pi)
 		progress := relative / (2 * math.Pi)
 		brightness := (math.Sin(progress*2*math.Pi*3) + 1) / 2
-		return interpolate(colorLightsInactive, colorBlurple, brightness)
+		return interpolate(theme.LightsInactive, theme.Blurple, brightness)
 	}
 	if animation >= BLINKING_START && animation <= BLINKING_END {
 		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
-		return interpolate(colorLightsInactive, colorBlurple, phase)
+		return interpolate(theme.LightsInactive, theme.Blurple, phase)
 	}
-	return colorRed
+	return theme.Red
 }
 
-func getArrowColor(animation float64) color.RGBA {
+func getArrowColor(theme Theme, animation float64) color.Color {
 	if animation < BLINKING_START {
-		return colorArrowInactive
+		return theme.ArrowInactive
 	}
 	if animation >= BLINKING_START && animation <= BLINKING_END {
 		phase := (animation - BLINKING_START) / (BLINKING_END - BLINKING_START)
-		return interpolate(colorArrowInactive, colorRed, phase)
+		return interpolate(theme.ArrowInactive, theme.Red, phase)
 	}
-	return colorRed
+	return theme.Red
 }
 
-func drawWheel(dc *gg.Context, options []string, target int, cx, cy, radius, animation, rotation float64) {
-	outerRadius := radius
-	innerRadius := outerRadius * 0.95
-
-	// Load better font
-	regular, err := truetype.Parse(goregular.TTF)
-	if err != nil {
-		log.Fatal(err)
-	}
-	dc.SetFontFace(truetype.NewFace(regular, &truetype.Options{
-		Size:    radius * 0.06,
-		Hinting: font.HintingFull,
-	}))
-
+func (wr *WheelRenderer) drawWheel(theme Theme, dc *gg.Context, cx, cy, animation, rotation float64) {
 	// Draw wheel
-	angleStep := 2 * math.Pi / float64(len(options))
+	step := 2 * math.Pi / float64(len(wr.Options))
 
-	for i, label := range options {
-		startAngle := rotation + angleStep*float64(i)
-		endAngle := startAngle + angleStep
+	for i, label := range wr.Options {
+		start := rotation + step*float64(i)
+		end := start + step
 
 		dc.MoveTo(cx, cy)
-		dc.DrawArc(cx, cy, innerRadius, startAngle, endAngle)
+		dc.DrawArc(cx, cy, wr.InnerRadius, start, end)
 		dc.ClosePath()
 
 		if i%2 == 0 {
-			dc.SetColor(colorBgPrimary)
+			dc.SetColor(theme.BgPrimary)
 		} else {
-			dc.SetColor(colorBgSecondary)
+			dc.SetColor(theme.BgSecondary)
 		}
 		dc.Fill()
 
-		midAngle := (startAngle + endAngle) / 2
-		labelX := cx + math.Cos(midAngle)*innerRadius*0.6
-		labelY := cy + math.Sin(midAngle)*innerRadius*0.6
+		middle := (start + end) / 2
+		labelX := cx + math.Cos(middle)*wr.InnerRadius*0.6
+		labelY := cy + math.Sin(middle)*wr.InnerRadius*0.6
 
 		dc.Push()
 		dc.Translate(labelX, labelY)
 
 		// Draw the label
-		dc.SetColor(color.Black)
+		dc.SetColor(theme.Black)
 		dc.DrawStringAnchored(label, 1, 1, 0.5, 0.5)
-		var fg color.Color = color.White
-		if i == target {
-			fg = getTextColor(animation)
+
+		var fg color.Color = theme.White
+		if i == wr.Target {
+			fg = getTextColor(theme, animation)
 		}
 		dc.SetColor(fg)
 		dc.DrawStringAnchored(label, 0, 0, 0.5, 0.5)
@@ -141,91 +178,82 @@ func drawWheel(dc *gg.Context, options []string, target int, cx, cy, radius, ani
 
 	// Draw division lines
 	dc.SetLineWidth(2)
-	dc.SetColor(colorOutline)
-	for i := 0; i < len(options); i++ {
-		angle := rotation + angleStep*float64(i)
-		x := cx + math.Cos(angle)*innerRadius
-		y := cy + math.Sin(angle)*innerRadius
+	dc.SetColor(theme.Outline)
+	for i := 0; i < len(wr.Options); i++ {
+		angle := rotation + step*float64(i)
+		x := cx + math.Cos(angle)*wr.InnerRadius
+		y := cy + math.Sin(angle)*wr.InnerRadius
 		dc.MoveTo(cx, cy)
 		dc.LineTo(x, y)
 		dc.Stroke()
 	}
 
 	// Draw hub
-	hubRadius := radius * 0.20
-	dc.SetColor(colorBlurple)
+	hubRadius := wr.OuterRadius * 0.20
+	dc.SetColor(theme.Blurple)
 	dc.DrawCircle(cx, cy, hubRadius)
 	dc.Fill()
 	dc.SetLineWidth(2)
-	dc.SetColor(colorOutline)
+	dc.SetColor(theme.Outline)
 	dc.DrawCircle(cx, cy, hubRadius)
 	dc.Stroke()
 }
 
-func drawLights(dc *gg.Context, options []string, cx, cy, radius, animation, rotation float64) {
-	outerRadius := radius
-	innerRadius := outerRadius * 0.95
+func (wr *WheelRenderer) drawLights(theme Theme, dc *gg.Context, cx, cy, animation, rotation float64) {
+	count := len(wr.Options) * 2
+	radius := wr.OuterRadius * 0.015
+	offset := (wr.OuterRadius + wr.InnerRadius) / 2
+	step := 2 * math.Pi / float64(count)
 
-	lightCount := len(options) * 2
-	lightRadius := radius * 0.015
-	lightOffset := (outerRadius + innerRadius) / 2
-	angleStep := 2 * math.Pi / float64(lightCount)
+	for i := 0; i < count; i++ {
+		angle := step * float64(i)
+		x := cx + math.Cos(angle)*offset
+		y := cy + math.Sin(angle)*offset
 
-	for i := 0; i < lightCount; i++ {
-		angle := angleStep * float64(i)
-		x := cx + math.Cos(angle)*lightOffset
-		y := cy + math.Sin(angle)*lightOffset
-
-		animated := getLightColor(angle, animation, rotation)
+		animated := getLightColor(theme, angle, animation, rotation)
 
 		dc.SetColor(animated)
-		dc.DrawCircle(x, y, lightRadius)
+		dc.DrawCircle(x, y, radius)
 		dc.Fill()
 	}
 }
 
-func drawArrow(dc *gg.Context, cx, cy, radius, animation float64) {
-	outerRadius := radius
-	innerRadius := outerRadius * 0.95
-
-	arrowSize := radius * 0.15
+func (wr *WheelRenderer) drawArrow(theme Theme, dc *gg.Context, cx, cy, animation float64) {
+	size := wr.OuterRadius * 0.15
 	// Places the arrow slightly inside the border
-	arrowOffset := innerRadius + arrowSize*0.1
+	offset := wr.InnerRadius + size*0.1
 
 	tipX := cx
-	tipY := cy - arrowOffset
+	tipY := cy - offset
 
 	dc.NewSubPath()
-	dc.MoveTo(tipX, tipY+arrowSize)
-	dc.LineTo(tipX-arrowSize/2, tipY)
-	dc.LineTo(tipX+arrowSize/2, tipY)
+	dc.MoveTo(tipX, tipY+size)
+	dc.LineTo(tipX-size/2, tipY)
+	dc.LineTo(tipX+size/2, tipY)
 	dc.ClosePath()
 
-	animated := getArrowColor(animation)
+	animated := getArrowColor(theme, animation)
 	dc.SetColor(animated)
 	dc.FillPreserve()
 
-	scaledLineWidth := radius * 0.01
+	scaledLineWidth := wr.OuterRadius * 0.01
 	dc.SetLineWidth(scaledLineWidth)
-	dc.SetColor(colorOutline)
+	dc.SetColor(theme.Outline)
 	dc.Stroke()
 }
 
-func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) error {
-	const RADIUS = 200
+func (wr *WheelRenderer) RenderGIF(w io.Writer) error {
+	width, height := int(wr.OuterRadius*2), int(wr.OuterRadius*2)
+	cx, cy := float64(width)/2, float64(height)/2
 
-	const W, H = RADIUS * 2, RADIUS * 2
+	spins := float64(wr.Duration) * 1.0
+	circles := spins * 2 * math.Pi
+	required := clockWiseToTarget(wr.Options, wr.Target)
+	destination := circles + required
 
-	cx, cy := float64(W)/2, float64(H)/2
+	delay := 100 / wr.FPS
 
-	spins := float64(duration) * 1.0
-	rotations := spins * 2 * math.Pi
-	required := clockWiseToTarget(options, target)
-	destination := rotations + required
-
-	delay := 100 / fps
-
-	frames := fps * duration
+	frames := wr.FPS * wr.Duration
 
 	images := make([]*image.Paletted, frames)
 	delays := make([]int, frames)
@@ -233,23 +261,11 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 	var wg sync.WaitGroup
 	wg.Add(frames)
 
-	workerCount := runtime.NumCPU()
-	sem := make(chan struct{}, workerCount)
+	sem := make(chan struct{}, runtime.NumCPU())
 
-	palette := []color.Color{
-		color.Transparent,
-		color.Black,
-		color.White,
-		colorBgPrimary,
-		colorBgSecondary,
-		colorOutline,
-		colorBlurple,
-		colorRed,
-		colorArrowInactive,
-		colorLightsInactive,
-	}
+	theme := NewDefaultTheme()
 
-	border := drawWheelBorderImage(W, H, cx, cy, RADIUS)
+	border := wr.drawWheelBorderImage(theme, width, height, cx, cy)
 
 	// Processing frames in parallel :>
 	for frame := 0; frame < frames; frame++ {
@@ -261,17 +277,25 @@ func generateWheelGIF(w io.Writer, options []string, target, fps, duration int) 
 			animation := float64(frame) / float64(frames-1)
 			eased := 1 - math.Pow(1-animation, 3)
 
-			frameDC := gg.NewContext(W, H)
-
 			rotation := math.Min(destination, destination*eased)
-			drawWheel(frameDC, options, target, cx, cy, RADIUS, animation, rotation)
-			drawArrow(frameDC, cx, cy, RADIUS, animation)
-			frameDC.DrawImage(border, 0, 0)
-			drawLights(frameDC, options, cx, cy, RADIUS, animation, rotation)
 
-			render := frameDC.Image()
+			dc := gg.NewContext(width, height)
+			dc.SetColor(theme.Transparent)
+			dc.Clear()
+
+			dc.SetFontFace(truetype.NewFace(theme.Font, &truetype.Options{
+				Size:    wr.OuterRadius * 0.05,
+				Hinting: font.HintingFull,
+			}))
+
+			wr.drawWheel(theme, dc, cx, cy, animation, rotation)
+			wr.drawArrow(theme, dc, cx, cy, animation)
+			dc.DrawImage(border, 0, 0)
+			wr.drawLights(theme, dc, cx, cy, animation, rotation)
+
+			render := dc.Image()
 			bounds := render.Bounds()
-			paletted := image.NewPaletted(bounds, palette)
+			paletted := image.NewPaletted(bounds, theme.Palette)
 			draw.Draw(paletted, bounds, render, bounds.Min, draw.Src)
 			images[frame] = paletted
 			delays[frame] = delay

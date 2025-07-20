@@ -132,17 +132,26 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 
+	wr := &WheelRenderer{
+		OuterRadius: 200,
+		InnerRadius: 200 * 0.95,
+		Options:     options,
+		Target:      target,
+		FPS:         fps,
+		Duration:    duration,
+	}
+
 	var buf bytes.Buffer
-	err = generateWheelGIF(&buf, options, target, fps, duration)
+	err = wr.RenderGIF(&buf)
 	if err != nil {
-		log.Printf("Error generating wheel GIF: %v", err)
-		http.Error(w, "Failed to generate wheel", http.StatusInternalServerError)
+		log.Printf("Error rendering GIF: %v", err)
+		http.Error(w, "Failed to render GIF", http.StatusInternalServerError)
 		return
 	}
 
 	elapsed := time.Since(start)
 
-	log.Printf("Generated wheel GIF in %v (duration=%d, fps=%d)", elapsed, duration, fps)
+	log.Printf("Rendered GIF in %v (duration=%d, fps=%d)", elapsed, duration, fps)
 
 	gif := buf.Bytes()
 
@@ -150,6 +159,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "image/gif")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
+
 	w.Write(gif)
 }
 
