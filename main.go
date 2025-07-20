@@ -13,53 +13,26 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto"
-	"github.com/joho/godotenv"
 )
 
 const DEFAULT_PORT = "8080"
-const DEFAULT_CACHE_MAX_BYTES int64 = 200 * 1024 * 1024
-const DEFAULT_CACHE_NUM_COUNTERS int64 = 1024
-const DEFAULT_CACHE_TTL_HOURS time.Duration = 6 * time.Hour
+const DEFAULT_WHEEL_RADIUS = 200
+const DEFAULT_CACHE_MAX_BYTES = 200 * 1024 * 1024
+const DEFAULT_CACHE_NUM_COUNTERS = 1024
+const DEFAULT_CACHE_TTL_HOURS = 6
 
 var cache *ristretto.Cache
 var cacheTTL time.Duration
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Failed to load environment variables.")
-	}
+	maxCost := getEnvInt("CACHE_MAX_BYTES", DEFAULT_CACHE_MAX_BYTES)
+	numCounters := getEnvInt("CACHE_NUM_COUNTERS", DEFAULT_CACHE_NUM_COUNTERS)
+	cacheTTL = time.Duration(getEnvInt("CACHE_TTL_HOURS", DEFAULT_CACHE_TTL_HOURS)) * time.Hour
 
-	maxCost := DEFAULT_CACHE_MAX_BYTES
-	if val := os.Getenv("CACHE_MAX_BYTES"); val != "" {
-		if parsed, err := strconv.ParseInt(val, 10, 64); err != nil {
-			log.Printf("Warning: Invalid CACHE_MAX_BYTES '%s'. Using default %d bytes.", val, maxCost)
-		} else {
-			maxCost = parsed
-		}
-	}
-
-	numCounters := DEFAULT_CACHE_NUM_COUNTERS
-	if val := os.Getenv("CACHE_NUM_COUNTERS"); val != "" {
-		if parsed, err := strconv.ParseInt(val, 10, 64); err != nil {
-			log.Printf("Warning: Invalid CACHE_NUM_COUNTERS '%s'. Using default %d.", val, numCounters)
-		} else {
-			numCounters = parsed
-		}
-	}
-
-	cacheTTL = DEFAULT_CACHE_TTL_HOURS
-	if val := os.Getenv("CACHE_TTL_HOURS"); val != "" {
-		if parsed, err := strconv.Atoi(val); err != nil {
-			log.Printf("Warning: Invalid CACHE_TTL_HOURS '%s'. Using default %s.", val, cacheTTL)
-		} else {
-			cacheTTL = time.Duration(parsed) * time.Hour
-		}
-	}
-
+	var err error
 	cache, err = ristretto.NewCache(&ristretto.Config{
-		NumCounters: numCounters,
-		MaxCost:     maxCost,
+		NumCounters: int64(numCounters),
+		MaxCost:     int64(maxCost),
 		BufferItems: 64,
 	})
 	if err != nil {
@@ -132,9 +105,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 
+	radius := getEnvInt("WHEEL_RADIUS", DEFAULT_WHEEL_RADIUS)
+
 	wr := &WheelRenderer{
-		OuterRadius: 200,
-		InnerRadius: 200 * 0.95,
+		OuterRadius: float64(radius),
+		InnerRadius: float64(radius) * 0.95,
 		Options:     options,
 		Target:      target,
 		FPS:         fps,
@@ -151,7 +126,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	elapsed := time.Since(start)
 
-	log.Printf("Rendered GIF in %v (duration=%d, fps=%d)", elapsed, duration, fps)
+	log.Printf("Rendered GIF in %v (duration=%d, fps=%d).", elapsed, duration, fps)
 
 	gif := buf.Bytes()
 
@@ -164,11 +139,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Failed to load environment variables.")
-	}
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = DEFAULT_PORT
