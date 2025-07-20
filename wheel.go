@@ -79,22 +79,6 @@ func NewDefaultTheme() Theme {
 	return theme
 }
 
-func (wr *WheelRenderer) drawWheelBorderImage(theme Theme, width, height int, cx, cy float64) image.Image {
-	dc := gg.NewContext(width, height)
-
-	dc.SetColor(theme.Outline)
-
-	dc.NewSubPath()
-	dc.DrawCircle(cx, cy, wr.OuterRadius)
-
-	dc.NewSubPath()
-	dc.DrawCircle(cx, cy, wr.InnerRadius)
-	dc.SetFillRule(gg.FillRuleEvenOdd)
-	dc.Fill()
-
-	return dc.Image()
-}
-
 const (
 	BLINKING_START = 0.9
 	BLINKING_END   = 1.0
@@ -134,6 +118,21 @@ func getArrowColor(theme Theme, animation float64) color.Color {
 		return interpolate(theme.ArrowInactive, theme.Red, phase)
 	}
 	return theme.Red
+}
+
+func (wr *WheelRenderer) renderWheelBorder(theme Theme, width, height int, cx, cy float64) image.Image {
+	dc := gg.NewContext(width, height)
+
+	dc.NewSubPath()
+	dc.DrawCircle(cx, cy, wr.OuterRadius)
+
+	dc.NewSubPath()
+	dc.DrawCircle(cx, cy, wr.InnerRadius)
+	dc.SetFillRule(gg.FillRuleEvenOdd)
+	dc.SetColor(theme.Outline)
+	dc.Fill()
+
+	return dc.Image()
 }
 
 func (wr *WheelRenderer) drawWheel(theme Theme, dc *gg.Context, cx, cy, animation, rotation float64) {
@@ -277,7 +276,7 @@ func (wr *WheelRenderer) RenderGIF(w io.Writer) error {
 
 	theme := NewDefaultTheme()
 
-	border := wr.drawWheelBorderImage(theme, width, height, cx, cy)
+	border := wr.renderWheelBorder(theme, width, height, cx, cy)
 
 	// Processing frames in parallel :>
 	for frame := 0; frame < frames; frame++ {
