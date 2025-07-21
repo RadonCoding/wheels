@@ -1,4 +1,7 @@
-![](https://github.com/RadonCoding/wheels/blob/main/example.gif?raw=true)
+<div align="center">
+    <img src="https://github.com/RadonCoding/wheels/blob/main/example.gif?raw=true" width="400" />
+</div>
+<br/>
 
 **wheels** is a Go-based web service that dynamically generates animated "spin-the-wheel" GIFs via input parameters.
 
