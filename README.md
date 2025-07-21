@@ -27,9 +27,9 @@ Check [.env.example](https://github.com/RadonCoding/wheels/blob/main/.env.exampl
 
 ## Example
 
-`GET /?options=Red,Green,Blue&target=0&duration=10&fps=24`
+`GET /?options=Red,Green,Blue&target=0&duration=5&fps=24`
 
-This will return an animated GIF where the wheel spins for 10 seconds at 24 FPS and lands on "Red".
+This will return an animated GIF where the wheel spins for 5 seconds at 24 FPS and lands on "Red".
 
 ## Contributing
 
