@@ -13,20 +13,26 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Go
+      - name: set up go
         uses: actions/setup-go@v5
         with:
           go-version: "1.21"
 
-      - name: Run in background
+      - name: run server
         run: |
           go run . &
 
-      - name: Request example
+      - name: wait for server
+        run: |
+          while ! nc -z localhost 8080; do
+            sleep 1
+          done
+
+      - name: request the example
         run: |
           curl -m 5 http://localhost:8080/?options=Red,Green,Blue\&target=0\&fps=24\&duration=10 > example.gif
 
-      - name: Commit and push example
+      - name: commit and push example
         uses: EndBug/add-and-commit@v9
         with:
           author_name: github-actions
