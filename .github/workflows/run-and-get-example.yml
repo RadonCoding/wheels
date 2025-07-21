@@ -24,7 +24,7 @@ jobs:
 
       - name: wait for server
         run: |
-          while ! nc -z localhost 8080; do
+          until curl -sSf http://localhost:8080/health; do
             sleep 1
           done
 
