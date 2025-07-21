@@ -9,10 +9,7 @@ import (
 )
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Warning: Failed to load environment variables from .env file")
-	}
+	godotenv.Load()
 }
 
 func getEnvInt(key string, def int) int {
