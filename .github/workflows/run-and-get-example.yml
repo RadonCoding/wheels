@@ -22,10 +22,6 @@ jobs:
         run: |
           go run . &
 
-      - name: build jar
-        run: |
-          ./gradlew build
-
       - name: Request example
         run: |
           curl http://localhost:8080/options=Red,Green,Blue&target=0&fps=24&duration=10 > output.txt
