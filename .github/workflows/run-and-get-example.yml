@@ -24,7 +24,7 @@ jobs:
 
       - name: Request example
         run: |
-          curl http://localhost:8080/options=Red,Green,Blue&target=0&fps=24&duration=10 > output.txt
+          curl http://localhost:8080/options=Red,Green,Blue&target=0&fps=24&duration=10 > example.png
 
       - name: Commit and push example
         uses: EndBug/add-and-commit@v9
