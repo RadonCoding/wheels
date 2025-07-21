@@ -1,4 +1,4 @@
-# wheels
+![](https://github.com/RadonCoding/wheels/blob/main/example.gif?raw=true)
 
 **wheels** is a Go-based web service that dynamically generates animated "spin-the-wheel" GIFs via input parameters.
 
@@ -6,20 +6,17 @@
 
 ## Features
 
--   Fully animated spinning wheel exported as a GIF
-    
--   Customize options, target result, duration, and FPS
-    
--   Styled using a theme
-    
--   Easy deployment as a standalone HTTP service
+- Fully animated spinning wheel exported as a GIF
+- Customize options, target result, duration, and FPS
+- Styled using a theme
+- Easy deployment as a standalone HTTP service
 
 <br>
 
 ## Requirements
 
--   Go 1.22 or higher
-    
+- Go 1.22 or higher
+
 <br>
 
 ## Installation
@@ -32,7 +29,7 @@ Clone the repository and build the project:
 
 Then run it:
 
-`./wheels` 
+`./wheels`
 
 By default, the server will start on `localhost:8080`.
 
@@ -41,7 +38,6 @@ By default, the server will start on `localhost:8080`.
 ## Usage
 
 **Make a GET request to `/` with the following query parameters:**
-
 
 `options`- Comma-separated list of wheel labels (e.g. `a,b,c,d`)
 
@@ -55,7 +51,7 @@ By default, the server will start on `localhost:8080`.
 
 ### Example Request
 
-`GET /?options=apple,banana,grape,pear&target=2&duration=5&fps=20` 
+`GET /?options=apple,banana,grape,pear&target=2&duration=5&fps=20`
 
 This will return an animated GIF where the wheel spins for 5 seconds at 20 FPS and lands on “grape”.
 
@@ -63,7 +59,7 @@ This will return an animated GIF where the wheel spins for 5 seconds at 20 FPS a
 
 ### cURL Example
 
-`curl "http://localhost:8080/?options=red,blue,green,yellow&target=1&fps=15&duration=6" --output wheel.gif` 
+`curl "http://localhost:8080/?options=red,blue,green,yellow&target=1&fps=15&duration=6" --output wheel.gif`
 
 ---
 
