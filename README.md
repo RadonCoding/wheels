@@ -38,7 +38,3 @@ This will return an animated GIF where the wheel spins for 5 seconds at 24 FPS a
 3. Commit your changes (`git commit -m "changed something"`)
 4. Push to the branch (`git push origin my-change`)
 5. Create new pull request
-
-## License
-
-This project is licensed under the MIT License.
