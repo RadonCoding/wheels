@@ -18,17 +18,19 @@ jobs:
         with:
           go-version: "1.21"
 
-      - name: run server
+      - name: run the server
         run: |
           go run . &
 
-      - name: wait for server
+      - name: wait for the server
         run: |
-          sleep 1
+          until curl -s http://localhost:8080/ > /dev/null 2>&1; do
+            sleep 1
+          done
 
       - name: request the example
         run: |
-          curl -m 5 http://localhost:8080/?options=Red,Green,Blue\&target=0\&fps=24\&duration=5 > example.gif
+          curl http://localhost:8080/?options=Red,Green,Blue\&target=0\&fps=24\&duration=5 > example.gif
 
       - name: commit and push example
         uses: EndBug/add-and-commit@v9
