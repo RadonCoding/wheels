@@ -30,7 +30,7 @@ jobs:
 
       - name: Generate the example
         run: |
-          curl http://localhost:8080/?options=Red,Green,Blue&target=0&fps=24&duration=5 > example.gif
+          curl http://localhost:8080/?options=Red,Green,Blue\&target=0\&fps=24\&duration=5 > example.gif
 
       - name: Commit and push the example
         uses: EndBug/add-and-commit@v9
