@@ -10,29 +10,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: checkout code
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: set up go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.21"
 
-      - name: run the server
+      - name: Run the server
         run: |
           go run . &
 
-      - name: wait for the server
+      - name: Wait for the server
         run: |
           until curl -s http://localhost:8080/ > /dev/null 2>&1; do
             sleep 1
           done
 
-      - name: request the example
+      - name: Request the example
         run: |
           curl http://localhost:8080/?options=Red,Green,Blue\&target=0\&fps=24\&duration=5 > example.gif
 
-      - name: commit and push example
+      - name: Commit and push example
         uses: EndBug/add-and-commit@v9
         with:
           author_name: github-actions
