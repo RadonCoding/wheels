@@ -1,19 +1,19 @@
-name: Run and Get Example
+name: Generate Example
 
 on:
   push:
     branches:
       - main
 jobs:
-  build:
+  generate-example:
     permissions: write-all
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Set up Go
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.21"
@@ -28,11 +28,11 @@ jobs:
             sleep 1
           done
 
-      - name: Request the example
+      - name: Generate the example
         run: |
-          curl http://localhost:8080/?options=Red,Green,Blue\&target=0\&fps=24\&duration=5 > example.gif
+          curl http://localhost:8080/?options=Red,Green,Blue&target=0&fps=24&duration=5 > example.gif
 
-      - name: Commit and push example
+      - name: Commit and push the example
         uses: EndBug/add-and-commit@v9
         with:
           author_name: github-actions
