@@ -1,7 +1,4 @@
-<div align="center">
-    <img src="https://github.com/RadonCoding/wheels/blob/main/example.gif?raw=true" width="400" />
-</div>
-<br/>
+![](example.gif)
 
 Simple API to generate customizable animated spinning wheels as GIFs.
 
@@ -38,7 +35,3 @@ This will return an animated GIF where the wheel spins for 5 seconds at 24 FPS a
 3. Commit your changes (`git commit -m "changed something"`)
 4. Push to the branch (`git push origin my-change`)
 5. Create new pull request
-
-## License
-
-This project is licensed under the MIT License.
