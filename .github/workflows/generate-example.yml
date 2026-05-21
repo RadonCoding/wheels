@@ -6,8 +6,9 @@ on:
       - main
 jobs:
   generate-example:
-    permissions: write-all
     runs-on: ubuntu-latest
+    permissions:
+        contents: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v5
