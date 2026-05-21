@@ -306,10 +306,11 @@ func (wr *WheelRenderer) RenderGIF(w io.Writer) error {
 			dc.DrawImage(border, 0, 0)
 			wr.drawLights(theme, dc, cx, cy, animation, rotation)
 
-			render := dc.Image()
+			render := dc.Image().(*image.RGBA)
 			bounds := render.Bounds()
 			paletted := image.NewPaletted(bounds, theme.Palette)
 			draw.Draw(paletted, bounds, render, bounds.Min, draw.Src)
+
 			images[frame] = paletted
 			delays[frame] = delay
 		}(frame)

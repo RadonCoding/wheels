@@ -16,7 +16,7 @@ import (
 )
 
 const DEFAULT_PORT = "8080"
-const DEFAULT_WHEEL_RADIUS = 360
+const DEFAULT_WHEEL_RADIUS = 180
 const DEFAULT_CACHE_MAX_BYTES = 200 * 1024 * 1024
 const DEFAULT_CACHE_NUM_COUNTERS = 1024
 const DEFAULT_CACHE_TTL_HOURS = 6
@@ -144,10 +144,10 @@ func main() {
 		port = DEFAULT_PORT
 	}
 
-	addr := fmt.Sprintf(":%s", port)
+	address := fmt.Sprintf(":%s", port)
 
 	http.HandleFunc("/", handler)
 
 	fmt.Printf("Server running on http://localhost:%s\n", port)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	log.Fatal(http.ListenAndServe(address, nil))
 }
