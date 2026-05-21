@@ -1,4 +1,7 @@
-![](example.gif)
+<div align="center">
+    <img src="https://github.com/RadonCoding/wheels/blob/main/example.gif?raw=true" width="50%" />
+</div>
+<br/>
 
 Simple API to generate customizable animated spinning wheels as GIFs.
 
